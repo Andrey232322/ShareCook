@@ -1,19 +1,27 @@
+from rest_framework import mixins
 
+from django.shortcuts import get_object_or_404
 from djoser.views import UserViewSet
-from rest_framework import generics, status,  viewsets
+from rest_framework import generics, status, viewsets, exceptions
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
-from .models import User
-from .serializers import UserSerializer, UserAvatarSerializer, PasswordSerializer
+from rest_framework.views import APIView
+
+from .models import User, Subscription
+from .serializers import UserSerializer, UserAvatarSerializer, PasswordSerializer, SubscriptionSerializer
 from rest_framework.exceptions import ValidationError
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from api.permissions import IsAuthenOrReadOnly
+
+#from .serializers import SubscriptionSerializer
+
 
 class UserMEViewSet(viewsets.ModelViewSet):
 
     queryset = User.objects.all()
     serializer_class = UserSerializer
-
+    permission_classes = (IsAuthenOrReadOnly,)
     @action(detail=False, methods=['get', 'put', 'patch'], url_path='me')
     def me(self, request):
         user = request.user
@@ -67,3 +75,54 @@ class UserMEViewSet(viewsets.ModelViewSet):
             user.save()
             return Response({'status': 'Пароль изменён успешно'})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['get'],
+            serializer_class=SubscriptionSerializer,
+            )
+    def subscriptions(self, request):
+        user = self.request.user
+        subscriptions = User.objects.filter(
+            subscribing__user=user
+        ).prefetch_related('recipes')
+        paginated_queryset = self.paginate_queryset(subscriptions)
+        serializer = self.get_serializer(paginated_queryset, many=True)
+        return self.get_paginated_response(serializer.data)
+
+    # @action(detail=True, methods=['post', 'delete'],
+    #         serializer_class=SubscriptionSerializer)
+    # def subscribe(self, request, id=None):
+    #     user = self.request.user
+    #     author = get_object_or_404(User, pk=id)
+    #
+    #     if self.request.method == 'POST':
+    #         if user == author:
+    #             raise exceptions.ValidationError(
+    #                 'Нельзя подписаться на самого себя!'
+    #             )
+    #         if Subscription.objects.filter(
+    #                 user=user,
+    #                 author=author
+    #         ).exists():
+    #             raise exceptions.ValidationError(
+    #                 'Вы уже подписаны на этого автора.'
+    #             )
+    #         Subscription.objects.create(user=user, author=author)
+    #         serializer = self.get_serializer(author)
+    #         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    #
+    #     if self.request.method == 'DELETE':
+    #         if not Subscription.objects.filter(
+    #                 user=user,
+    #                 author=author
+    #         ).exists():
+    #             raise exceptions.ValidationError(
+    #                 'Подписка не была оформлена, либо уже удалена.'
+    #             )
+    #         subscription = get_object_or_404(
+    #             Subscription,
+    #             user=user,
+    #             author=author
+    #         )
+    #         subscription.delete()
+    #         return Response(status=status.HTTP_204_NO_CONTENT)
+    #     return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)

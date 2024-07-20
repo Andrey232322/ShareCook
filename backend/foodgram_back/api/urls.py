@@ -13,7 +13,7 @@ v1_router = DefaultRouter()
 v1_router.register('users', UserMEViewSet)
 
 urlpatterns = [
-    path('api/', include(v1_router.urls)),
-    # path('auth/', include('djoser.urls')),
-    # path('auth/', include('djoser.urls.authtoken')),
+    path('', include(v1_router.urls)),
+    path('auth/', include('djoser.urls')),
+    path('auth/', include('djoser.urls.authtoken')),
 ]
