@@ -13,7 +13,9 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from api.permissions import IsAuthenOrReadOnly
-
+import mimetypes
+import base64
+from django.core.files.storage import default_storage
 #from .serializers import SubscriptionSerializer
 
 
@@ -38,25 +40,33 @@ class UserMEViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
         elif request.method in ['PUT', 'PATCH']:
             serializer = self.get_serializer(user, data=request.data, partial=True)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response(serializer.data)
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        try:
-            serializer.is_valid(raise_exception=True)
-            self.perform_create(serializer)
-            headers = self.get_success_headers(serializer.data)
-            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-        except ValidationError as e:
-            # Get the required fields from the serializer
-            required_fields = [field for field in serializer.fields if serializer.fields[field].required]
-            error_response = {
-                "detail": "Validation error",
-                "errors": e.detail,
-                "required_fields": required_fields
-            }
-            return Response(error_response, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
+                # Кодирование изображения в Base64
+                if user.avatar:
+                    file_path = user.avatar.path
+                    mime_type, _ = mimetypes.guess_type(file_path)
+                    with default_storage.open(file_path, 'rb') as image_file:
+                        image_data = image_file.read()
+                        encoded_image = base64.b64encode(image_data).decode('utf-8')
+                        avatar_data = f"data:{mime_type};base64,{encoded_image}"
+                else:
+                    avatar_data = None
+
+                response_data = serializer.data
+                response_data['avatar'] = avatar_data
+
+                return Response(response_data, status=status.HTTP_200_OK)
+            except ValidationError as e:
+                required_fields = [field for field in serializer.fields if serializer.fields[field].required]
+                error_response = {
+                    "detail": "Validation error",
+                    "errors": e.detail,
+                    "required_fields": required_fields
+                }
+                return Response(error_response, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False, methods=['post'], url_path='set_password', serializer_class=PasswordSerializer)
     def set_password(self, request):
