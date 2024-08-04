@@ -6,6 +6,9 @@ from rest_framework.validators import UniqueTogetherValidator
 from django.core.files.base import ContentFile
 import base64
 
+
+
+
 class Base64ImageField(serializers.ImageField):
     def to_internal_value(self, data):
         if isinstance(data, str) and data.startswith('data:image'):
@@ -35,23 +38,3 @@ class PasswordSerializer(serializers.Serializer):
     new_password = serializers.CharField(write_only=True, required=True)
     current_password = serializers.CharField(write_only=True, required=True)
 
-class SubscriptionSerializer(UserSerializer):
-    recipes = serializers.SerializerMethodField(read_only=True)
-    recipes_count = serializers.SerializerMethodField()
-
-    class Meta:
-        model = User
-        fields = ("email", "id", "username", "first_name", "last_name",
-                  "is_subscribed", "recipes", "recipes_count")
-
-    def get_recipes(self, obj):
-        request = self.context.get('request')
-        limit = request.query_params.get('recipes_limit')
-        recipes = Recipe.objects.filter(author=obj)
-        if limit:
-            recipes = recipes[:int(limit)]
-        serializer = RecipeSerializer(recipes, many=True)
-        return serializer.data
-
-    def get_recipes_count(self, obj):
-        return Recipe.objects.filter(author=obj).count()

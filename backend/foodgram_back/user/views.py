@@ -8,7 +8,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import User, Subscription
-from .serializers import UserSerializer, UserAvatarSerializer, PasswordSerializer, SubscriptionSerializer
+from .serializers import UserSerializer, UserAvatarSerializer, PasswordSerializer
+from api.serializers import SubscriptionSerializer
 from rest_framework.exceptions import ValidationError
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -17,7 +18,7 @@ import mimetypes
 import base64
 from django.core.files.storage import default_storage
 #from .serializers import SubscriptionSerializer
-
+from rest_framework.exceptions import NotAuthenticated
 
 class UserMEViewSet(viewsets.ModelViewSet):
 
@@ -88,9 +89,11 @@ class UserMEViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='subscriptions', url_name='subscriptions')
     def subscriptions(self, request):
         user = self.request.user
+        if not user.is_authenticated:
+            raise NotAuthenticated("Вы должны войти в систему, чтобы просматривать подписки.")
         subscriptions = User.objects.filter(
             subscribing__user=user
-        ).prefetch_related('recipes').order_by('id')
+        ).prefetch_related('recipes')
 
         paginated_queryset = self.paginate_queryset(subscriptions)
         if paginated_queryset is not None:
