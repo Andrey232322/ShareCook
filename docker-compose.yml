@@ -17,13 +17,26 @@ services:
     env_file: .env
     volumes:
       - static:/backend_static
+      - media:/media
     ports:
       - 8000:8000
     depends_on:
       - db
+
   gateway:
     image: andrey223/food_gateway
     volumes:
       - static:/staticfiles/
+      - media:/media
     ports:
       - 8080:80
+    depends_on:
+      - frontend
+
+  frontend:
+    image: andrey223/food_frontend
+    command: cp -r /app/build/. /frontend_static/
+    volumes:
+      - static:/frontend_static
+    depends_on:
+      - backend
