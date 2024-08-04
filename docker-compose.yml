@@ -19,3 +19,7 @@ services:
       - 8000:8000
     depends_on:
       - db
+  gateway:
+    image: andrey223/food_gateway
+    ports:
+      - 8080:80
