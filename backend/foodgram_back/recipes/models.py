@@ -41,7 +41,7 @@ class Recipe(models.Model):
         related_name='recipes',
         verbose_name='Ингредиент',
         max_length=255,)
-    tags = models.ManyToManyField(Tag, related_name='resept',)
+    tags = models.ManyToManyField(Tag, related_name='recipes',)
     image = models.ImageField(upload_to='avatars/',
                               blank=True, null=True,
                               verbose_name='Изображение',

@@ -35,8 +35,8 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(max_length=255, verbose_name='Название')),
                 ('text', models.CharField(max_length=255, verbose_name='Текст')),
                 ('cooking_time', models.IntegerField(verbose_name='Время приготовления')),
-                ('author', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='resept', to=settings.AUTH_USER_MODEL, verbose_name='Автор рецепта')),
-                ('tags', models.ManyToManyField(related_name='resept', to='resept.Tag')),
+                ('author', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='recipes', to=settings.AUTH_USER_MODEL, verbose_name='Автор рецепта')),
+                ('tags', models.ManyToManyField(related_name='recipes', to='recipes.Tag')),
             ],
             options={
                 'verbose_name': 'Рецепт',

@@ -1,7 +1,7 @@
 
 from rest_framework import serializers
 from .models import User, Subscription
-from resept.models import Recipe
+from recipes.models import Recipe
 from rest_framework.validators import UniqueTogetherValidator
 from django.core.files.base import ContentFile
 import base64

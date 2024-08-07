@@ -1197,7 +1197,7 @@ components:
           type: integer
           minimum: 1
       required:
-        - ingredients
+        - ingredients.py
         - tags
         - image
         - name
@@ -1250,7 +1250,7 @@ components:
           type: integer
           minimum: 1
       required:
-        - ingredients
+        - ingredients.py
         - tags
         - name
         - text

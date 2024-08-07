@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from resept.models import (
+from recipes.models import (
     Recipe,
     Ingredient,
     Tag

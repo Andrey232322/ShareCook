@@ -7,7 +7,7 @@ from rest_framework import status, viewsets, exceptions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
-from resept.models import Tag, Ingredient, Recipe, ShoppingList, RecipeIngredient, Favorite
+from recipes.models import Tag, Ingredient, Recipe, ShoppingList, RecipeIngredient, Favorite
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from .serializers import TagSerializer, IngredientSerializer, RecipeSerializer, FavoriteAndShoppingSerializer

@@ -43,7 +43,7 @@ INSTALLED_APPS = [
     'djoser',
     'corsheaders',
     'user.apps.UserConfig',
-    'resept.apps.ReseptConfig',
+    'recipes.apps.ReseptConfig',
     'api.apps.ApiConfig',
 ]
 
