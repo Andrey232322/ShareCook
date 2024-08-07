@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-qy3v6gt3qxbqnuxre7)*6%u&*_@c2y+0xv)v0+4sv1sg0pp)$u
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["158.160.73.74", "127.0.0.1"]
+ALLOWED_HOSTS = ['158.160.73.74', '127.0.0.1', 'localhost', 'random-foodgram.zapto.org']
 
 
 # Application definition
@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'djoser',
+    'corsheaders',
     'user.apps.UserConfig',
     'resept.apps.ReseptConfig',
     'api.apps.ApiConfig',
@@ -49,13 +50,17 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3000',
+]
+CORS_URLS_REGEX = r'^/api/.*$'
 ROOT_URLCONF = 'foodgram_back.urls'
 
 TEMPLATES = [

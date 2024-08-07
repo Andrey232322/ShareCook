@@ -11,6 +11,7 @@ Django==3.2.25
 django-templated-mail==1.1.1
 djangorestframework==3.12.4
 djangorestframework-simplejwt==4.8.0
+django-cors-headers==4.1.0
 djoser==2.1.0
 flake8==6.0.0
 flake8-isort==6.0.0
