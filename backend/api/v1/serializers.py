@@ -1,14 +1,15 @@
+import base64
 import re
+
 from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
 from django.db.models import F
 from django.shortcuts import get_object_or_404
 from djoser.serializers import UserCreateSerializer, UserSerializer
-from rest_framework import serializers
 from recipes.models import (FavoritesList, Ingredient, Recipe,
                             RecipeIngredient, ShoppingList, Tag)
+from rest_framework import serializers
 from users.models import Follow, User
-from django.core.files.base import ContentFile
-import base64
 
 
 class Base64ImageField(serializers.ImageField):
@@ -19,10 +20,12 @@ class Base64ImageField(serializers.ImageField):
             data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
         return super().to_internal_value(data)
 
+
 class UserReadSerializer(UserSerializer):
     """Серилизатор для вывода пользователей."""
     is_subscribed = serializers.SerializerMethodField()
     avatar = Base64ImageField()
+
     class Meta:
         model = User
         fields = ('email', 'id', 'username',
@@ -55,12 +58,15 @@ class UserCreateSerializer(UserCreateSerializer):
             )
         return value
 
+
 class AvatarUpdateSerializer(serializers.ModelSerializer):
     avatar = Base64ImageField()
 
     class Meta:
         model = User
         fields = ('avatar',)
+
+
 class SetPasswordSerializer(serializers.Serializer):
     """Сериализатор для смены пароля."""
 

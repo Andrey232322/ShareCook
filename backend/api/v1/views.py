@@ -1,32 +1,31 @@
+import base64
+import mimetypes
+
 from django.contrib.auth import get_user_model
+from django.core.files.storage import default_storage
+from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
+from recipes.models import (FavoritesList, Ingredient, Recipe,
+                            RecipeIngredient, ShoppingList, Tag)
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import (AllowAny, IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
-
-from recipes.models import (FavoritesList,
-                            Ingredient, Recipe,
-                            ShoppingList, Tag, RecipeIngredient)
 from users.models import Follow
 
-from django.db.models import Sum
 from .filters import IngredientFilter, RecipeFilter
 from .mixins import CreateListRetrieveViewSet
 from .paginators import LimitPageNumberPaginator
-from .serializers import (FavoritesListSerializer, IngredientSerializer,
-                          RecipeCreateSerializer, RecipeGetSerializer,
-                          SetPasswordSerializer, ShoppingCartSerializer,
-                          SubscribeSerializer, SubscriptionSerializer,
-                          TagSerializer, UserCreateSerializer,
-                          UserReadSerializer, Base64ImageField, AvatarUpdateSerializer)
-import mimetypes
-import base64
-from django.core.files.storage import default_storage
-from rest_framework.exceptions import ValidationError
+from .serializers import (AvatarUpdateSerializer, FavoritesListSerializer,
+                          IngredientSerializer, RecipeCreateSerializer,
+                          RecipeGetSerializer, SetPasswordSerializer,
+                          ShoppingCartSerializer, SubscribeSerializer,
+                          SubscriptionSerializer, TagSerializer,
+                          UserCreateSerializer, UserReadSerializer)
 
 User = get_user_model()
 
@@ -62,7 +61,8 @@ class UserViewSet(CreateListRetrieveViewSet):
         serializer = self.get_serializer(request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @action(detail=False, methods=['put', 'patch', 'delete'], url_path='me/avatar',
+    @action(detail=False, methods=['put', 'patch', 'delete'],
+            url_path='me/avatar',
             serializer_class=AvatarUpdateSerializer)
     def avatar(self, request):
         user = request.user
@@ -72,19 +72,21 @@ class UserViewSet(CreateListRetrieveViewSet):
             user.save()
             return Response(status=status.HTTP_204_NO_CONTENT)
         elif request.method in ['PUT', 'PATCH']:
-            serializer = self.get_serializer(user, data=request.data, partial=True)
+            serializer = self.get_serializer(user,
+                                             data=request.data, partial=True)
             try:
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
-                # Кодирование изображения в Base64
                 if user.avatar:
                     file_path = user.avatar.path
                     mime_type, _ = mimetypes.guess_type(file_path)
                     with default_storage.open(file_path, 'rb') as image_file:
                         image_data = image_file.read()
-                        encoded_image = base64.b64encode(image_data).decode('utf-8')
-                        avatar_data = f"data:{mime_type};base64,{encoded_image}"
+                        encoded_image = base64.b64encode(image_data).decode(
+                            'utf-8')
+                        avatar_data = (f"data:{mime_type};"
+                                       f"base64,{encoded_image}")
                 else:
                     avatar_data = None
 
@@ -93,13 +95,15 @@ class UserViewSet(CreateListRetrieveViewSet):
 
                 return Response(response_data, status=status.HTTP_200_OK)
             except ValidationError as e:
-                required_fields = [field for field in serializer.fields if serializer.fields[field].required]
+                required_fields = [field for field in serializer.fields
+                                   if serializer.fields[field].required]
                 error_response = {
                     "detail": "Validation error",
                     "errors": e.detail,
                     "required_fields": required_fields
                 }
-                return Response(error_response, status=status.HTTP_400_BAD_REQUEST)
+                return Response(error_response,
+                                status=status.HTTP_400_BAD_REQUEST)
 
     @action(
         methods=('post',),
