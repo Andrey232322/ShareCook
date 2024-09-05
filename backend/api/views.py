@@ -10,7 +10,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 #sys.path.append(os.path.join(os.getcwd(), '..'))
 from recipes.models import Recipe, Ingredient, Tag, RecipeIngredient, ShoppingList, Favorite
-from .serializers import IngredientSerializer, TagSerializer, RecipeCreatePutSerializer, RecipeSerializer, FavoriteAndShoppingSerializer, ShortRecipeSerializer
+from .serializers import IngredientSerializer, TagSerializer, RecipeCreatePutSerializer, RecipeSerializer, FavoriteAndShoppingSerializer, ShortRecipeSerializer, ShoppingCartSerializer
 from django.shortcuts import get_object_or_404
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
@@ -32,14 +32,15 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     permission_classes = (IsAuthenticatedOrReadOnly,)
-    #pagination = PageNumberPagination
 
     def get_serializer_class(self):
-        if self.action in ['create', 'update']:
-            return RecipeCreatePutSerializer
-        if self.action in ['favorite']:
+        if self.action in ('list', 'retrieve'):
+            return RecipeSerializer
+        elif self.action in ['favorite']:
             return ShortRecipeSerializer
-        return RecipeSerializer
+        elif self.action == 'shopping_cart':
+            return ShoppingCartSerializer
+        return RecipeCreatePutSerializer
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)

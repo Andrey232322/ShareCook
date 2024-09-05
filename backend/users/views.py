@@ -22,11 +22,17 @@ class UserViewSet(viewsets.ModelViewSet):
     permission_classes = (AllowAny,)
 
     def get_serializer_class(self):
-        if self.action == 'create':
-            return UserCreateSerializer
+        if self.action in ('list', 'retrieve'):
+            return UserReadSerializer
         elif self.action == 'set_password':
             return PasswordSerializer
-        return UserReadSerializer
+        elif self.action == 'subscribe':
+            return SubscriptionSerializer
+        elif self.action == 'avatar':
+            return AvatarUpdateSerializer
+        elif self.action == 'me':
+            return UserReadSerializer
+        return UserCreateSerializer
 
     @action(detail=False, methods=['get'], url_path='me', permission_classes=(IsAuthenticated,))
     def me(self, request):

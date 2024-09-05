@@ -92,8 +92,8 @@ class TagSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'slug')
 class RecipeSerializer(serializers.ModelSerializer):
     author = UserReadSerializer()
-    # tags = TagSerializer(many=True)  развернутый ответ будет
-    # ingredients = IngredientSerializer(many=True)
+    tags = TagSerializer(many=True)
+    ingredients = IngredientSerializer(many=True)
     class Meta:
         model = Recipe
         fields = (
@@ -112,13 +112,13 @@ class RecipeSerializer(serializers.ModelSerializer):
 class RecipeCreatePutSerializer(serializers.ModelSerializer):
     tags = serializers.PrimaryKeyRelatedField(many=True, queryset=Tag.objects.all())
     ingredients = serializers.PrimaryKeyRelatedField(many=True, queryset=Ingredient.objects.all())
-
+    image = Base64ImageField(required=True, allow_null=False)
     class Meta:
         model = Recipe
         fields = (
             'ingredients',
             'tags',
-            # 'images',
+            'images',
             'name',
             'text',
             'cooking_time',
@@ -148,6 +148,26 @@ class FavoriteAndShoppingSerializer(serializers.ModelSerializer):
     #         data['image'] = 'avatars/default.jpg'  # Укажите путь к изображению по умолчанию
     #     return data
 
+class ShoppingCartSerializer(serializers.ModelSerializer):
+    def validate(self, data):
+        recipe_id = self.context['recipe_id']
+        user = self.context['request'].user
+        if ShoppingList.objects.filter(
+            user=user, recipe_id=recipe_id
+        ).exists():
+            raise serializers.ValidationError(
+                'Этот рецепт уже есть в списке покупок'
+            )
+        return data
+
+    def create(self, validated_data):
+        recipe = get_object_or_404(Recipe, pk=validated_data['id'])
+        ShoppingList.objects.create(
+            user=self.context['request'].user,
+            recipe=recipe
+        )
+        serializer = ShortRecipeSerializer(recipe)
+        return serializer.data
 
 
 
