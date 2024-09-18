@@ -1,7 +1,6 @@
-from django.db.models import F
+
 from recipes.models import Ingredient, Tag, Recipe, ShoppingСart,  Favorite, RecipeIngredient
 import base64
-from django.shortcuts import get_object_or_404
 
 from django.core.files.base import ContentFile
 from djoser.serializers import UserCreateSerializer, UserSerializer
@@ -101,7 +100,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     author = UserReadSerializer(read_only=True)
     tags = TagSerializer(many=True)
     ingredients = RecipeIngredientGetSerializer(many=True, source='recipe_ingredients')
-    is_favorited = serializers.SerializerMethodField()  # Включаем обратно поле is_favorited
+    is_favorited = serializers.SerializerMethodField() # Включаем обратно поле is_favorited
     is_in_shopping_cart = serializers.SerializerMethodField()
     image = Base64ImageField(required=True, allow_null=False)
 
@@ -113,14 +112,10 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def get_is_favorited(self, obj):
         """Проверяет, добавлен ли рецепт в избранное текущим пользователем."""
-        request = self.context.get('request')
-        user = request.user
-
-        if not request or not user.is_authenticated:
-            return False  # Если пользователь не аутентифицирован, возвращаем False
-
-        # Проверяем, существует ли запись в модели Favorite для текущего пользователя и рецепта
-        return Favorite.objects.filter(user=user, recipe=obj).exists()
+        user = self.context.get('request').user
+        if user.is_authenticated:
+            return Favorite.objects.filter(user=user, recipe=obj).exists()
+        return False
 
     def get_is_in_shopping_cart(self, obj):
         user = self.context.get('request').user

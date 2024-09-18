@@ -23,7 +23,7 @@ from .serializers import (UserCreateSerializer,
                           FavoriteSerializer,)
 from django.shortcuts import get_object_or_404
 from users.models import User, Subscription
-
+from .filters import RecipeFilter
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
@@ -189,6 +189,7 @@ class UserViewSet(viewsets.ModelViewSet):
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     permission_classes = (IsAuthenticatedOrReadOnly,)
+    filterset_class = RecipeFilter
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
