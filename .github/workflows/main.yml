@@ -8,14 +8,13 @@ on:
 jobs:
   tests:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
     services:
       postgres:
         image: postgres:13.10
         env:
-          POSTGRES_USER: django_user_
-          POSTGRES_PASSWORD: mysecretpassword
-          POSTGRES_DB: django
+          POSTGRES_USER: django_user
+          POSTGRES_PASSWORD: django_password
+          POSTGRES_DB: django_db
         ports:
           - 5432:5432
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
@@ -25,6 +24,7 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: 3.9
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip 
@@ -33,14 +33,14 @@ jobs:
       - name: Test with flake8 and django tests
         env:
           POSTGRES_USER: django_user
-          POSTGRES_PASSWORD: mysecretpassword
-          POSTGRES_DB: django
-          DB_HOST: db
+          POSTGRES_PASSWORD: django_password
+          POSTGRES_DB: django_db
+          DB_HOST: 127.0.0.1
           DB_PORT: 5432
         run: |
           python -m flake8 backend/
           cd backend/
-          python manage.py test
+          python manage.py test 
 
   build_and_push_to_docker_hub:
     name: Push Docker image to DockerHub
