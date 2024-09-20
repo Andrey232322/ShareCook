@@ -13,13 +13,23 @@ services:
       - pg_data:/var/lib/postgresql/data
 
   backend:
-    build: ./backend/
+    image: andrey223/food_backend
     env_file: .env
     volumes:
       - static:/backend_static
       - media:/media
     depends_on:
       - db
+
+  gateway:
+    image: andrey223/food_gateway
+    volumes:
+      - static:/staticfiles/
+      - media:/media
+    ports:
+      - 8000:80
+    depends_on:
+      - frontend
 
   frontend:
     image: andrey223/food_frontend
@@ -28,11 +38,3 @@ services:
       - static:/frontend_static
     depends_on:
       - backend
-
-  gateway:
-    build: ./gateway/
-    volumes:
-      - static:/staticfiles/
-      - media:/media
-    ports:
-      - 8000:80

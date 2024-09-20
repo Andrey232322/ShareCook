@@ -1,11 +1,10 @@
-from django.db import models
 from django.contrib.auth.models import AbstractUser
-# Create your models here.
+from django.db import models
+
 
 class User(AbstractUser):
 
     email = models.EmailField(unique=True)
-    #is_subscribed = models.BooleanField(default=False)
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
 
     USERNAME_FIELD = 'email'
@@ -15,7 +14,9 @@ class User(AbstractUser):
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
 
+
 class Subscription(models.Model):
+
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -32,7 +33,6 @@ class Subscription(models.Model):
     class Meta:
         verbose_name = 'Подписка'
         verbose_name_plural = 'Подписки'
-
 
     def __str__(self):
         return f'{self.user} подписан на {self.author}'

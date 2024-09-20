@@ -1,29 +1,28 @@
 import base64
 import mimetypes
+
 from django.core.exceptions import ValidationError
-from django.http import HttpResponse
-from django.db.models import Sum
-from rest_framework.exceptions import NotAuthenticated
-from rest_framework.response import Response
-from rest_framework import viewsets, status, exceptions
-from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticatedOrReadOnly, AllowAny, IsAuthenticated
 from django.core.files.storage import default_storage
-from recipes.models import Recipe, Ingredient, Tag, RecipeIngredient, ShoppingСart, Favorite
-from .serializers import (UserCreateSerializer,
-                          UserReadSerializer,
-                          PasswordSerializer,
-                          AvatarUpdateSerializer,
-                          SubscriptionSerializer,
-                          SubscribeSerializer,
-                          IngredientSerializer,TagSerializer,
-                          RecipeSerializer,
-                          RecipeCreateSerializer,
-                          ShoppingCartSerializer,
-                          FavoriteSerializer,)
+from django.db.models import Sum
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
-from users.models import User, Subscription
+from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
+                            ShoppingСart, Tag)
+from rest_framework import exceptions, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.exceptions import NotAuthenticated
+from rest_framework.permissions import (AllowAny, IsAuthenticated,
+                                        IsAuthenticatedOrReadOnly)
+from rest_framework.response import Response
+from users.models import Subscription, User
+
 from .filters import RecipeFilter
+from .serializers import (AvatarUpdateSerializer, FavoriteSerializer,
+                          IngredientSerializer, PasswordSerializer,
+                          RecipeCreateSerializer, RecipeSerializer,
+                          ShoppingCartSerializer, SubscribeSerializer,
+                          SubscriptionSerializer, TagSerializer,
+                          UserCreateSerializer, UserReadSerializer)
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
@@ -63,7 +62,8 @@ class UserViewSet(viewsets.ModelViewSet):
 
         return UserCreateSerializer
 
-    @action(detail=False, methods=['get'], url_path='me', permission_classes=(IsAuthenticated,))
+    @action(detail=False, methods=['get'],
+            url_path='me', permission_classes=(IsAuthenticated,))
     def me(self, request):
         serializer = self.get_serializer(request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -117,19 +117,23 @@ class UserViewSet(viewsets.ModelViewSet):
         user = request.user
         serializer = PasswordSerializer(data=request.data)
         if serializer.is_valid():
-            if not user.check_password(serializer.validated_data['current_password']):
-                return Response({'current_password': 'Неправильный пароль'}, status=status.HTTP_400_BAD_REQUEST)
+            if not user.check_password(serializer.validated_data['current_'
+                                                                 'password']):
+                return Response({'current_password': 'Неправильный пароль'},
+                                status=status.HTTP_400_BAD_REQUEST)
             user.set_password(serializer.validated_data['new_password'])
             user.save()
             return Response({'status': 'Пароль изменён успешно'})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
-    @action(detail=False, methods=['get'], url_path='subscriptions', url_name='subscriptions')
+    @action(detail=False, methods=['get'],
+            url_path='subscriptions',
+            url_name='subscriptions')
     def subscriptions(self, request):
         user = self.request.user
         if not user.is_authenticated:
-            raise NotAuthenticated("Вы должны войти в систему, чтобы просматривать подписки.")
+            raise NotAuthenticated("Вы должны войти в систему, "
+                                   "чтобы просматривать подписки.")
         subscriptions = User.objects.filter(
             subscribing__user=user
         ).prefetch_related('recipes')
@@ -182,10 +186,6 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
-
-
-
-
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     permission_classes = (IsAuthenticatedOrReadOnly,)
@@ -199,11 +199,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
-
     @action(detail=True, methods=['get'], url_path='get-link')
     def get_link(self, request, pk=None):
         recipe = self.get_object()
-        short_link = f"https://random-foodgram.zapto.org/s/{recipe.pk}d0"
+        short_link = f"https://foodlastproject.zapto.org/s/{recipe.pk}d0"
         return Response({'short-link': short_link})
 
     @action(detail=True, methods=['post', 'delete'])
@@ -241,7 +240,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             permission_classes=[IsAuthenticated])
     def download_shopping_cart(self, request):
         shopping_list = RecipeIngredient.objects.filter(
-            recipe__shopping_cart__user=request.user  # связь через модель ShoppingCart
+            recipe__shopping_cart__user=request.user
         ).values(
             'ingredient__name', 'ingredient__measurement_unit'
         ).annotate(ingredient_total=Sum('amount'))
@@ -254,45 +253,32 @@ class RecipeViewSet(viewsets.ModelViewSet):
             )
 
         response = HttpResponse(text, content_type='text/plain')
-        response['Content-Disposition'] = ('attachment; filename="shopping_list.txt"')
+        response['Content-Disposition'] = \
+            ('attachment; filename="shopping_list.txt"')
         return response
 
-    @action(detail=True, methods=['post', 'delete'], url_path='favorite')
+    @action(detail=True, methods=['post', 'delete'],
+            url_path='favorite')
     def favorite(self, request, pk=None):
         recipe = get_object_or_404(Recipe, pk=pk)
 
         if request.method == 'POST':
-            if Favorite.objects.filter(user=request.user, recipe=recipe).exists():
-                raise exceptions.ValidationError('Рецепт уже добавлен в избранное.')
+            if Favorite.objects.filter(user=request.user,
+                                       recipe=recipe).exists():
+                raise exceptions.ValidationError('Рецепт уже добавлен '
+                                                 'в избранное.')
             Favorite.objects.create(user=request.user, recipe=recipe)
-
-            # Принудительное обновление данных рецепта после добавления в избранное
             recipe.refresh_from_db()
-            serializer = FavoriteSerializer(recipe, context={'request': request})
+            serializer = FavoriteSerializer(recipe,
+                                            context={'request': request})
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         elif request.method == 'DELETE':
-            favorite = Favorite.objects.filter(user=request.user, recipe=recipe)
+            favorite = Favorite.objects.filter(user=request.user,
+                                               recipe=recipe)
             if not favorite.exists():
                 raise exceptions.ValidationError('Рецепта нет в избранном.')
             favorite.delete()
 
             recipe.refresh_from_db()
             return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
