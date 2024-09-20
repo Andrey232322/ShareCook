@@ -1,4 +1,5 @@
 from django.contrib import admin
+<<<<<<< HEAD
 
 from .models import (FavoritesList, Ingredient, Recipe, RecipeIngredient,
                      ShoppingList, Tag)
@@ -39,3 +40,15 @@ admin.site.register(Ingredient, IngredientAdmin)
 admin.site.register(Tag, TagAdmin)
 admin.site.register(FavoritesList)
 admin.site.register(ShoppingList)
+=======
+from .models import (Favorite, Ingredient, Recipe, RecipeIngredient,
+                     ShoppingСart, Tag)
+
+# Register your models here.
+admin.site.register(Tag)
+admin.site.register(Ingredient)
+admin.site.register(Recipe)
+admin.site.register(ShoppingСart)
+admin.site.register(RecipeIngredient)
+admin.site.register(Favorite)
+>>>>>>> work
