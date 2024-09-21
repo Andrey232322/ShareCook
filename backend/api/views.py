@@ -1,7 +1,6 @@
 import base64
 import mimetypes
 
-from django.core.exceptions import ValidationError
 from django.core.files.storage import default_storage
 from django.db.models import Sum
 from django.http import HttpResponse
@@ -10,7 +9,6 @@ from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
                             ShoppingСart, Tag)
 from rest_framework import exceptions, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotAuthenticated
 from rest_framework.permissions import (AllowAny, IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
@@ -20,9 +18,9 @@ from .filters import RecipeFilter
 from .serializers import (AvatarUpdateSerializer, FavoriteSerializer,
                           IngredientSerializer, PasswordSerializer,
                           RecipeCreateSerializer, RecipeSerializer,
-                          ShoppingCartSerializer, SubscribeSerializer,
-                          SubscriptionSerializer, TagSerializer,
-                          UserCreateSerializer, UserReadSerializer)
+                          ShoppingCartSerializer, SubscriptionSerializer,
+                          TagSerializer, UserCreateSerializer,
+                          UserReadSerializer)
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
@@ -57,8 +55,6 @@ class UserViewSet(viewsets.ModelViewSet):
             return PasswordSerializer
         elif self.action == 'subscriptions':
             return SubscriptionSerializer
-        elif self.action == 'subscribe':
-            return SubscribeSerializer
 
         return UserCreateSerializer
 
@@ -73,67 +69,52 @@ class UserViewSet(viewsets.ModelViewSet):
             serializer_class=AvatarUpdateSerializer)
     def avatar(self, request):
         user = request.user
+
         if request.method == 'DELETE':
             user.avatar.delete()
             user.avatar = None
             user.save()
             return Response(status=status.HTTP_204_NO_CONTENT)
-        elif request.method in ['PUT', 'PATCH']:
-            serializer = self.get_serializer(user,
-                                             data=request.data, partial=True)
-            try:
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
 
-                if user.avatar:
-                    file_path = user.avatar.path
-                    mime_type, _ = mimetypes.guess_type(file_path)
-                    with default_storage.open(file_path, 'rb') as image_file:
-                        image_data = image_file.read()
-                        encoded_image = base64.b64encode(image_data).decode(
-                            'utf-8')
-                        avatar_data = (f"data:{mime_type};"
-                                       f"base64,{encoded_image}")
-                else:
-                    avatar_data = None
+        # Обработка PUT и PATCH запросов
+        serializer = self.get_serializer(user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
 
-                response_data = serializer.data
-                response_data['avatar'] = avatar_data
+        avatar_data = None
+        if user.avatar:
+            file_path = user.avatar.path
+            mime_type, _ = mimetypes.guess_type(file_path)
+            with default_storage.open(file_path, 'rb') as image_file:
+                image_data = image_file.read()
+                encoded_image = base64.b64encode(image_data).decode('utf-8')
+                avatar_data = f"data:{mime_type};base64,{encoded_image}"
 
-                return Response(response_data, status=status.HTTP_200_OK)
-            except ValidationError as e:
-                required_fields = [field for field in serializer.fields
-                                   if serializer.fields[field].required]
-                error_response = {
-                    "detail": "Validation error",
-                    "errors": e.detail,
-                    "required_fields": required_fields
-                }
-                return Response(error_response,
-                                status=status.HTTP_400_BAD_REQUEST)
+        response_data = serializer.data
+        response_data['avatar'] = avatar_data
+
+        return Response(response_data, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['post'], url_path='set_password')
     def set_password(self, request):
         user = request.user
-        serializer = PasswordSerializer(data=request.data)
-        if serializer.is_valid():
-            if not user.check_password(serializer.validated_data['current_'
-                                                                 'password']):
-                return Response({'current_password': 'Неправильный пароль'},
-                                status=status.HTTP_400_BAD_REQUEST)
-            user.set_password(serializer.validated_data['new_password'])
-            user.save()
-            return Response({'status': 'Пароль изменён успешно'})
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer = PasswordSerializer(data=request.data,
+                                        context={'request': request})
+
+        serializer.is_valid(raise_exception=True)
+
+        user.set_password(serializer.validated_data['new_password'])
+        user.save()
+
+        return Response({'status': 'Пароль изменён успешно'},
+                        status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['get'],
             url_path='subscriptions',
-            url_name='subscriptions')
+            url_name='subscriptions',
+            permission_classes=[IsAuthenticated])
     def subscriptions(self, request):
         user = self.request.user
-        if not user.is_authenticated:
-            raise NotAuthenticated("Вы должны войти в систему, "
-                                   "чтобы просматривать подписки.")
         subscriptions = User.objects.filter(
             subscribing__user=user
         ).prefetch_related('recipes')
@@ -146,44 +127,28 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(subscriptions, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['post', 'delete'],
-            serializer_class=SubscribeSerializer)
+    @action(detail=True, methods=['post', 'delete'])
     def subscribe(self, request, pk=None):
-        user = self.request.user
+        user = request.user
         author = get_object_or_404(User, pk=pk)
 
-        if self.request.method == 'POST':
+        if request.method == 'POST':
             if user == author:
-                raise exceptions.ValidationError(
-                    'Нельзя подписаться на самого себя!'
-                )
-            if Subscription.objects.filter(
-                    user=user,
-                    author=author
-            ).exists():
-                raise exceptions.ValidationError(
-                    'Вы уже подписаны на этого автора.'
-                )
+                raise exceptions.ValidationError('Нельзя подписаться'
+                                                 ' на самого себя!')
+
+            if Subscription.objects.filter(user=user, author=author).exists():
+                raise exceptions.ValidationError('Вы уже'
+                                                 ' подписаны на этого автора.')
+
             Subscription.objects.create(user=user, author=author)
             serializer = self.get_serializer(author)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        if self.request.method == 'DELETE':
-            if not Subscription.objects.filter(
-                    user=user,
-                    author=author
-            ).exists():
-                raise exceptions.ValidationError(
-                    'Подписка не была оформлена, либо уже удалена.'
-                )
-            subscription = get_object_or_404(
-                Subscription,
-                user=user,
-                author=author
-            )
-            subscription.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        subscription = get_object_or_404(Subscription,
+                                         user=user, author=author)
+        subscription.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -211,28 +176,16 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if request.method == 'POST':
             if ShoppingСart.objects.filter(user=request.user,
                                            recipe=recipe).exists():
-                raise exceptions.ValidationError(
-                    'Рецепт уже добавлен в список покупок.'
-                )
+                raise exceptions.ValidationError('Рецепт уже '
+                                                 'добавлен в список покупок.')
             ShoppingСart.objects.create(user=request.user, recipe=recipe)
-            serializer = ShoppingCartSerializer(
-                recipe, context={'request': request}
-            )
+            serializer = ShoppingCartSerializer(recipe,
+                                                context={'request': request})
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-        elif request.method == "DELETE":
-            if not ShoppingСart.objects.filter(user=request.user,
-                                               recipe=recipe).exists():
-                raise exceptions.ValidationError(
-                    'Рецепта нет в списке покупок.'
-                )
-            shopping_cart = get_object_or_404(
-                ShoppingСart,
-                user=request.user,
-                recipe=recipe
-            )
-            shopping_cart.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+        shopping_cart = get_object_or_404(ShoppingСart,
+                                          user=request.user, recipe=recipe)
+        shopping_cart.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=['get'],
             url_path='download_shopping_cart',
@@ -257,16 +210,13 @@ class RecipeViewSet(viewsets.ModelViewSet):
             ('attachment; filename="shopping_list.txt"')
         return response
 
-    @action(detail=True, methods=['post', 'delete'],
-            url_path='favorite')
-    def favorite(self, request, pk=None):
-        recipe = get_object_or_404(Recipe, pk=pk)
-
+    def manage_favorite(self, request, recipe):
         if request.method == 'POST':
             if Favorite.objects.filter(user=request.user,
                                        recipe=recipe).exists():
-                raise exceptions.ValidationError('Рецепт уже добавлен '
-                                                 'в избранное.')
+                raise exceptions.ValidationError('Рецепт уже '
+                                                 'добавлен в избранное.')
+
             Favorite.objects.create(user=request.user, recipe=recipe)
             recipe.refresh_from_db()
             serializer = FavoriteSerializer(recipe,
@@ -278,7 +228,13 @@ class RecipeViewSet(viewsets.ModelViewSet):
                                                recipe=recipe)
             if not favorite.exists():
                 raise exceptions.ValidationError('Рецепта нет в избранном.')
-            favorite.delete()
 
+            favorite.delete()
             recipe.refresh_from_db()
             return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=['post', 'delete'],
+            url_path='favorite')
+    def favorite(self, request, pk=None):
+        recipe = get_object_or_404(Recipe, pk=pk)
+        return self.manage_favorite(request, recipe)

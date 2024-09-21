@@ -1,19 +1,12 @@
-import base64
-from django.core.files.base import ContentFile
+
+from django.core.exceptions import ValidationError
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
                             ShoppingСart, Tag)
 from rest_framework import serializers
 from users.models import Subscription, User
 
-
-class Base64ImageField(serializers.ImageField):
-    def to_internal_value(self, data):
-        if isinstance(data, str) and data.startswith('data:image'):
-            format, imgstr = data.split(';base64,')
-            ext = format.split('/')[-1]
-            data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
-        return super().to_internal_value(data)
+from .fields import Base64ImageField
 
 
 class UserCreateSerializer(UserCreateSerializer):
@@ -65,9 +58,17 @@ class PasswordSerializer(serializers.Serializer):
     new_password = serializers.CharField(write_only=True, required=True)
     current_password = serializers.CharField(write_only=True, required=True)
 
+    def validate(self, attrs):
+        user = self.context['request'].user
 
-class SubscribeSerializer(serializers.ModelSerializer):
-    pass
+        if not user.check_password(attrs['current_password']):
+            raise ValidationError({'current_password': 'Неправильный пароль'})
+
+        if len(attrs['new_password']) < 5:
+            raise ValidationError("Пароль должен"
+                                  " содержать минимум 5 символов.")
+
+        return attrs
 
 
 class IngredientSerializer(serializers.ModelSerializer):
@@ -151,20 +152,36 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         fields = ('id', 'ingredients', 'tags',
                   'image', 'name', 'text', 'cooking_time',)
 
+    def validate(self, data):
+        # Проверка на дублирование тегов
+        if len(data['tags']) != len(set(data['tags'])):
+            raise ValidationError('Теги должны быть уникальными.')
+
+        # Проверка на дублирование ингредиентов
+        # ingredients = data.get('ingredients', [])
+        # ingredient_ids = [ingredient['id'] for ingredient in ingredients]
+        # if len(ingredient_ids) != len(set(ingredient_ids)):
+        #     raise ValidationError('Ингредиенты должны быть уникальными.')
+
+        return data
+
     def create_ingredients(self, ingredients_data, recipe):
         """
         Метод для создания ингредиентов для рецепта.
+        Использует bulk_create для оптимизации.
         """
+        recipe_ingredients = []
         for ingredient_data in ingredients_data:
             ingredient_id = ingredient_data['ingredient']['id']
             ingredient = Ingredient.objects.get(id=ingredient_id)
             amount = ingredient_data['amount']
 
-            RecipeIngredient.objects.create(
+            recipe_ingredients.append(RecipeIngredient(
                 recipe=recipe,
                 ingredient=ingredient,
                 amount=amount
-            )
+            ))
+        RecipeIngredient.objects.bulk_create(recipe_ingredients)
 
     def create(self, validated_data):
         """
@@ -175,7 +192,6 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         recipe = Recipe.objects.create(**validated_data)
         recipe.tags.set(tags_data)
         self.create_ingredients(ingredients_data, recipe)
-
         return recipe
 
     def update(self, instance, validated_data):
@@ -184,13 +200,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         """
         tags_data = validated_data.pop('tags', None)
         ingredients_data = validated_data.pop('ingredients', None)
-
-        instance.name = validated_data.get('name', instance.name)
-        instance.text = validated_data.get('text', instance.text)
-        instance.cooking_time = validated_data.get('cooking_time',
-                                                   instance.cooking_time)
-        instance.image = validated_data.get('image', instance.image)
-        instance.save()
+        instance = super().update(instance, validated_data)
 
         if tags_data:
             instance.tags.set(tags_data)
