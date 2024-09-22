@@ -1,4 +1,3 @@
-
 from django.core.exceptions import ValidationError
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
@@ -7,6 +6,8 @@ from rest_framework import serializers
 from users.models import Subscription, User
 
 from .fields import Base64ImageField
+
+MIN_PASSWORD_LENGTH = 5
 
 
 class UserCreateSerializer(UserCreateSerializer):
@@ -64,7 +65,7 @@ class PasswordSerializer(serializers.Serializer):
         if not user.check_password(attrs['current_password']):
             raise ValidationError({'current_password': 'Неправильный пароль'})
 
-        if len(attrs['new_password']) < 5:
+        if len(attrs['new_password']) < MIN_PASSWORD_LENGTH:
             raise ValidationError("Пароль должен"
                                   " содержать минимум 5 символов.")
 
@@ -153,15 +154,15 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
                   'image', 'name', 'text', 'cooking_time',)
 
     def validate(self, data):
-        # Проверка на дублирование тегов
         if len(data['tags']) != len(set(data['tags'])):
             raise ValidationError('Теги должны быть уникальными.')
 
-        # Проверка на дублирование ингредиентов
-        # ingredients = data.get('ingredients', [])
-        # ingredient_ids = [ingredient['id'] for ingredient in ingredients]
-        # if len(ingredient_ids) != len(set(ingredient_ids)):
-        #     raise ValidationError('Ингредиенты должны быть уникальными.')
+        ingredients = data.get('ingredients', [])
+        ingredient_ids = [ingredient['ingredient']['id']
+                          for ingredient in ingredients]
+
+        if len(ingredient_ids) != len(set(ingredient_ids)):
+            raise ValidationError('Ингредиенты должны быть уникальными.')
 
         return data
 
@@ -172,10 +173,9 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         """
         recipe_ingredients = []
         for ingredient_data in ingredients_data:
-            ingredient_id = ingredient_data['ingredient']['id']
-            ingredient = Ingredient.objects.get(id=ingredient_id)
             amount = ingredient_data['amount']
-
+            ingredient = (Ingredient.
+                          objects.get(id=ingredient_data['ingredient']['id']))
             recipe_ingredients.append(RecipeIngredient(
                 recipe=recipe,
                 ingredient=ingredient,
@@ -242,5 +242,5 @@ class FavoriteSerializer(serializers.ModelSerializer):
     image = Base64ImageField(required=True, allow_null=False)
 
     class Meta:
-        model = Recipe  # Мы хотим вернуть информацию о рецепте
+        model = Recipe
         fields = ('id', 'name', 'image', 'cooking_time')
