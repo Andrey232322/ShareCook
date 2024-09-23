@@ -1,6 +1,7 @@
-from django.contrib.auth import get_user_model
-
+# Так? если нет то как
 from django_filters import rest_framework as filters
+
+from django.contrib.auth import get_user_model
 
 from recipes.models import Recipe
 
