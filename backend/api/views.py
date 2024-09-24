@@ -177,7 +177,7 @@ class RecipeViewSet(AddToRelationMixin, viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post', 'delete'])
     def shopping_cart(self, request, pk=None):
-        return self.add_to_relation(
+        return self.add_and_delet_to_relation(
             request=request,
             pk=pk,
             model=ShoppingСart,
@@ -210,7 +210,7 @@ class RecipeViewSet(AddToRelationMixin, viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post', 'delete'], url_path='favorite')
     def favorite(self, request, pk=None):
-        return self.add_to_relation(
+        return self.add_and_delet_to_relation(
             request=request,
             pk=pk,
             model=Favorite,

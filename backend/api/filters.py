@@ -1,7 +1,9 @@
-# Так? если нет то как
-from django_filters import rest_framework as filters
-
+# я не понимаю что ты хочешь чтобы я тут исправил по пепу
+# Импорты из стандартных библиотек идут первыми.
+# Затем идут сторонние библиотеки (например, django_filters).
+# В конце следуют локальные импорты.
 from django.contrib.auth import get_user_model
+from django_filters import rest_framework as filters
 
 from recipes.models import Recipe
 
