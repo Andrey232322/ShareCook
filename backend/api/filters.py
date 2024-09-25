@@ -1,11 +1,25 @@
-# я не понимаю что ты хочешь чтобы я тут исправил по пепу
-# Импорты из стандартных библиотек идут первыми.
-# Затем идут сторонние библиотеки (например, django_filters).
-# В конце следуют локальные импорты.
+# Django Filter — это сторонняя библиотека, которая упрощает создание фильтров
+# для моделей Django.
+# django.contrib.auth относится к стандартным библиотекам фреймворка Django
+# recipes.models моя, импорты локальных приложений или библиотек
+# # Стандартная библиотека Django
+# from django.contrib.auth import get_user_model
+#
+# # Сторонняя библиотека
+# from django_filters import rest_framework as filters
+#
+# # Локальная библиотека
+# from recipes.models import Recipe
+# импорты разных категорий (стандартные библиотеки,
+#                          сторонние библиотеки,
+#                          локальные модули)
+# разделены пустыми строками, как и предписано PEP 8.
 from django.contrib.auth import get_user_model
+
 from django_filters import rest_framework as filters
 
 from recipes.models import Recipe
+
 
 User = get_user_model()
 
