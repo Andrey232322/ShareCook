@@ -3,8 +3,8 @@ from djoser.serializers import UserCreateSerializer, UserSerializer
 from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
                             ShoppingСart, Tag)
 from rest_framework import serializers
-from users.models import Subscription, User
 
+from users.models import Subscription, User
 from .fields import Base64ImageField
 
 MIN_PASSWORD_LENGTH = 5
