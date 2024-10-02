@@ -1,11 +1,12 @@
 from django.core.exceptions import ValidationError
 from djoser.serializers import UserCreateSerializer, UserSerializer
-from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
-                            ShoppingСart, Tag)
 from rest_framework import serializers
 
+from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
+                            ShoppingСart, Tag)
 from users.models import Subscription, User
 from .fields import Base64ImageField
+
 
 MIN_PASSWORD_LENGTH = 5
 
