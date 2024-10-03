@@ -21,13 +21,14 @@ class RecipeFilter(filters.FilterSet):
     tags = django_filters.ModelMultipleChoiceFilter(
         field_name='tags',
         queryset=Tag.objects.all(),
-        to_field_name='id',  # или 'name', если хотите фильтровать по имени
+        to_field_name='id',
     )
+    author = django_filters.NumberFilter(field_name='author')
 
     class Meta:
         model = Recipe
         fields = (
-            'is_favorited', 'is_in_shopping_cart', 'tags'
+            'is_favorited', 'is_in_shopping_cart', 'tags', 'author'
         )
 
     def get_favorite(self, queryset, name, value):
