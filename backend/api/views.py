@@ -7,10 +7,13 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+
 from rest_framework.permissions import (AllowAny, IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
+from django_filters.rest_framework import DjangoFilterBackend
 
+from .paginator import CustomPageNumberPagination
 from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
                             ShoppingСart, Tag)
 from users.models import Subscription, User
@@ -159,7 +162,9 @@ class UserViewSet(viewsets.ModelViewSet):
 class RecipeViewSet(AddToRelationMixin, viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     permission_classes = (IsAuthenticatedOrReadOnly,)
+    filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
+    pagination_class = CustomPageNumberPagination
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
@@ -177,7 +182,7 @@ class RecipeViewSet(AddToRelationMixin, viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post', 'delete'])
     def shopping_cart(self, request, pk=None):
-        return self.add_and_delet_to_relation(
+        return self.add_and_delete_to_relation(
             request=request,
             pk=pk,
             model=ShoppingСart,
@@ -210,7 +215,7 @@ class RecipeViewSet(AddToRelationMixin, viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post', 'delete'], url_path='favorite')
     def favorite(self, request, pk=None):
-        return self.add_and_delet_to_relation(
+        return self.add_and_delete_to_relation(
             request=request,
             pk=pk,
             model=Favorite,
