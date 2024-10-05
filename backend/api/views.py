@@ -17,7 +17,7 @@ from .paginator import CustomPageNumberPagination
 from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
                             ShoppingСart, Tag)
 from users.models import Subscription, User
-from .filters import RecipeFilter
+from .filters import RecipeFilter, IngredientFilter
 from .mixin import AddToRelationMixin
 from .serializers import (AvatarUpdateSerializer, FavoriteSerializer,
                           IngredientSerializer, PasswordSerializer,
@@ -33,6 +33,8 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     permission_classes = (AllowAny,)
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = IngredientFilter
     pagination_class = None
 
 
@@ -177,7 +179,7 @@ class RecipeViewSet(AddToRelationMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=['get'], url_path='get-link')
     def get_link(self, request, pk=None):
         recipe = self.get_object()
-        short_link = f"https://foodlastproject.zapto.org/s/{recipe.pk}d0"
+        short_link = f"https://foodlastproject.zapto.org/recipes/{recipe.pk}"
         return Response({'short-link': short_link})
 
     @action(detail=True, methods=['post', 'delete'])

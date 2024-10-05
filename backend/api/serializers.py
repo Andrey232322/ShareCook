@@ -217,13 +217,21 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         source='recipes.count',
         read_only=True
     )
-    recipes = RecipeSerializer(many=True)
+    recipes = serializers.SerializerMethodField(read_only=True)
     is_subscribed = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
-        model = User  # Модель пользователя
+        model = User
         fields = ('email', 'id', 'username', 'first_name',
                   'last_name', 'is_subscribed', 'recipes', 'recipes_count')
+
+    def get_recipes(self, obj):
+        request = self.context.get('request')
+        limit_recipes = request.query_params.get('recipes_limit', None)
+        recipes = obj.recipes.all()[:int(limit_recipes)] \
+            if limit_recipes else obj.recipes.all()
+        return RecipeSerializer(recipes,
+                                many=True, context={'request': request}).data
 
     def get_is_subscribed(self, obj):
         request = self.context.get('request')
